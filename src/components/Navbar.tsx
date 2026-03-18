@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingBag, Menu, X, Settings } from 'lucide-react';
+import logoImage from '../../logo.jpeg';
 
 interface NavbarProps {
   cartCount: number;
@@ -34,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
             className="flex items-center gap-3 focus:outline-none"
           >
             <img
-              src="/logo.jpeg"
+              src={logoImage}
               alt="TFIZ logo"
               className="h-10 w-auto object-contain"
             />
