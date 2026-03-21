@@ -1,15 +1,27 @@
 import React from 'react';
-import { ShoppingBag, Menu, X, Settings } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Heart } from 'lucide-react';
 import logoImage from '../../logo.jpeg';
 
 interface NavbarProps {
   cartCount: number;
   onCartClick: () => void;
+  onHomeClick: () => void;
+  onCollectionsClick: () => void;
+  onProductsClick: () => void;
+  onAboutClick: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  cartCount,
+  onCartClick,
+  onHomeClick,
+  onCollectionsClick,
+  onProductsClick,
+  onAboutClick,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const [processedLogo, setProcessedLogo] = React.useState<string>(logoImage);
 
   React.useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -17,13 +29,34 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const yOffset = -80; // account for fixed navbar height
-    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-    window.scrollTo({ top: y, behavior: 'smooth' });
-  };
+  React.useEffect(() => {
+    const img = new Image();
+    img.src = logoImage;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+
+      // Remove near-black background while preserving colored logo pixels.
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        if (r < 40 && g < 40 && b < 40) {
+          data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      setProcessedLogo(canvas.toDataURL('image/png'));
+    };
+  }, []);
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-md py-4 border-b border-black/5' : 'bg-transparent py-6'}`}>
@@ -31,14 +64,16 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
         <div className="flex items-center">
           <button
             type="button"
-            onClick={() => (window.location.href = '/')}
+            onClick={onHomeClick}
             className="flex items-center gap-3 focus:outline-none"
           >
-            <img
-              src={logoImage}
-              alt="TFIZ logo"
-              className="h-10 w-auto object-contain"
-            />
+            <span className="h-14 w-14 flex items-center justify-center">
+              <img
+                src={processedLogo}
+                alt="TFiZ logo"
+                className="h-full w-full object-contain object-center scale-125"
+              />
+            </span>
             <span className="text-3xl font-black italic tracking-tighter leading-none">
               TFiZ
             </span>
@@ -48,25 +83,31 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
           <button
-            onClick={() => scrollToSection('shop')}
+            onClick={onProductsClick}
             className="text-sm font-medium hover:text-black/60 transition-colors"
           >
-            Shop
+            Products
           </button>
           <button
-            onClick={() => scrollToSection('shop')}
+            onClick={onCollectionsClick}
             className="text-sm font-medium hover:text-black/60 transition-colors"
           >
             Collections
           </button>
           <button
-            onClick={() => scrollToSection('about')}
+            onClick={onAboutClick}
             className="text-sm font-medium hover:text-black/60 transition-colors"
           >
             About
           </button>
           
-          <div className="flex items-center gap-4 ml-4 pl-4 border-l border-black/10">
+          <div className="flex items-center gap-2 ml-4 pl-4 border-l border-black/10">
+            <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Search">
+              <Search size={20} />
+            </button>
+            <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Interest">
+              <Heart size={20} />
+            </button>
             <button 
               onClick={onCartClick}
               className="relative p-2 hover:bg-black/5 rounded-full transition-colors"
@@ -81,8 +122,14 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
           </div>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <div className="flex items-center gap-4 md:hidden">
+        {/* Mobile Nav Actions */}
+        <div className="flex items-center gap-2 md:hidden">
+          <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Search">
+            <Search size={20} />
+          </button>
+          <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Interest">
+            <Heart size={20} />
+          </button>
           <button onClick={onCartClick} className="relative p-2">
             <ShoppingBag size={20} />
             {cartCount > 0 && (
@@ -103,16 +150,16 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
           <div className="flex flex-col gap-4">
             <button
               onClick={() => {
-                scrollToSection('shop');
+                onProductsClick();
                 setIsMenuOpen(false);
               }}
               className="text-left text-lg font-bold"
             >
-              Shop
+              Products
             </button>
             <button
               onClick={() => {
-                scrollToSection('shop');
+                onCollectionsClick();
                 setIsMenuOpen(false);
               }}
               className="text-left text-lg font-bold"
@@ -121,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({ cartCount, onCartClick }) => {
             </button>
             <button
               onClick={() => {
-                scrollToSection('about');
+                onAboutClick();
                 setIsMenuOpen(false);
               }}
               className="text-left text-lg font-bold"

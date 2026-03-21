@@ -62,7 +62,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProduc
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     price: 0,
-    category: 'Apparel',
+    category: 'T-shirts',
     image: '',
     description: '',
     isLimited: false
@@ -72,7 +72,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProduc
     setFormData({
       name: '',
       price: 0,
-      category: 'Apparel',
+      category: 'T-shirts',
       image: '',
       description: '',
       isLimited: false
@@ -274,9 +274,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ products, onUpdateProduc
                           onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                           className="w-full bg-black/5 border border-transparent rounded-2xl px-6 py-4 focus:outline-none focus:border-black/20 transition-colors appearance-none"
                         >
-                          <option value="Apparel">Apparel</option>
-                          <option value="Accessories">Accessories</option>
-                          <option value="Digital">Digital</option>
+                          <option value="T-shirts">T-shirts</option>
+                          <option value="Caps">Caps</option>
+                          <option value="Hoodies">Hoodies</option>
+                          <option value="Paintings">Paintings</option>
+                          <option value="Wall Frames">Wall Frames</option>
+                          <option value="Terrarium">Terrarium</option>
+                          <option value="Fan Made">Fan Made</option>
                         </select>
                       </div>
                       <div className="space-y-2">

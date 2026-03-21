@@ -9,10 +9,23 @@ interface CartDrawerProps {
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
   onCheckout: () => void;
+  spinDiscountPercent?: number;
+  spinDiscountLabel?: string;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onUpdateQuantity, onRemove, onCheckout }) => {
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+export const CartDrawer: React.FC<CartDrawerProps> = ({
+  isOpen,
+  onClose,
+  items,
+  onUpdateQuantity,
+  onRemove,
+  onCheckout,
+  spinDiscountPercent = 0,
+  spinDiscountLabel,
+}) => {
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountAmount = Math.round((subtotal * spinDiscountPercent) / 100);
+  const total = Math.max(0, subtotal - discountAmount);
 
   return (
     <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
@@ -77,6 +90,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, 
           <div className="p-6 border-t border-black/5 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-black/50 font-medium">Subtotal</span>
+              <span className="text-xl font-bold">₹{subtotal}</span>
+            </div>
+            {spinDiscountPercent > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-black/60 font-medium">
+                  Spin Discount ({spinDiscountLabel || `${spinDiscountPercent}% OFF`})
+                </span>
+                <span className="font-bold text-green-700">-₹{discountAmount}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="text-black/50 font-medium">Total</span>
               <span className="text-xl font-bold">₹{total}</span>
             </div>
             <button 

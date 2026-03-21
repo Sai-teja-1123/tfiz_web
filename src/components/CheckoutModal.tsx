@@ -10,9 +10,18 @@ interface CheckoutModalProps {
   onClose: () => void;
   items: CartItem[];
   onSuccess: () => void;
+  spinDiscountPercent?: number;
+  spinDiscountLabel?: string;
 }
 
-export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, items, onSuccess }) => {
+export const CheckoutModal: React.FC<CheckoutModalProps> = ({
+  isOpen,
+  onClose,
+  items,
+  onSuccess,
+  spinDiscountPercent = 0,
+  spinDiscountLabel,
+}) => {
   const [step, setStep] = useState<'info' | 'payment' | 'success'>('info');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -28,7 +37,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, i
     cvv: ''
   });
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountAmount = Math.round((subtotal * spinDiscountPercent) / 100);
+  const total = Math.max(0, subtotal - discountAmount);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,6 +66,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, i
             image: item.image
           })),
           total: total,
+          discount: spinDiscountPercent > 0 ? {
+            label: spinDiscountLabel || `${spinDiscountPercent}% OFF`,
+            percent: spinDiscountPercent,
+            amount: discountAmount,
+          } : null,
           status: 'pending',
           createdAt: Timestamp.now(),
           shippingAddress: {
@@ -310,8 +326,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, i
                   <div className="space-y-2 pt-6 border-t border-black/10">
                     <div className="flex justify-between text-sm">
                       <span className="opacity-50">Subtotal</span>
-                      <span className="font-bold">₹{total}</span>
+                      <span className="font-bold">₹{subtotal}</span>
                     </div>
+                    {spinDiscountPercent > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="opacity-50">Spin Discount ({spinDiscountLabel || `${spinDiscountPercent}% OFF`})</span>
+                        <span className="font-bold text-green-700">-₹{discountAmount}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="opacity-50">Shipping</span>
                       <span className="font-bold">FREE</span>

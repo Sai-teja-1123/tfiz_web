@@ -1,11 +1,26 @@
+export interface ArtistProfile {
+  name: string;
+  handle: string;
+  bio: string;
+  specialty: string;
+  avatar: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   price: number;
-  category: 'Apparel' | 'Accessories' | 'Digital';
+  category: 'T-shirts' | 'Caps' | 'Hoodies' | 'Paintings' | 'Wall Frames' | 'Terrarium' | 'Fan Made';
+  gender?: 'Men' | 'Women';
   image: string;
+  gallery?: string[];
   description: string;
   isLimited?: boolean;
+  inStock?: boolean;
+  discountLabel?: string;
+  arReady?: boolean;
+  rating?: number;
+  artist?: ArtistProfile;
 }
 
 export interface CartItem extends Product {

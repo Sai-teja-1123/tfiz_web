@@ -1,14 +1,17 @@
-import React, { useState, useMemo, useEffect, Component } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Component } from 'react';
 import { Navbar } from './components/Navbar';
 import { ProductCard } from './components/ProductCard';
 import { CartDrawer } from './components/CartDrawer';
-import { ProductModal } from './components/ProductModal';
+import { ProductPage } from './components/ProductPage';
+import { ArtistPage } from './components/ArtistPage';
+import { ProductsCatalog } from './components/ProductsCatalog';
+import { TrackOrderPage } from './components/TrackOrderPage';
 import { CheckoutModal } from './components/CheckoutModal';
 import { products as initialProducts } from './data/products';
 import { AdminPanel } from './components/AdminPanel';
 import { AdminLoginModal } from './components/AdminLoginModal';
-import { SpinWheel } from './components/SpinWheel';
-import { Product, CartItem } from './types';
+import { SpinWheel, SpinResult } from './components/SpinWheel';
+import { Product, CartItem, ArtistProfile } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowRight, 
@@ -67,7 +70,10 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 }
 
 const App: React.FC = () => {
+  const categoryFilters = ['All', 'T-shirts', 'Caps', 'Hoodies', 'Paintings', 'Wall Frames', 'Terrarium', 'Fan Made'];
+
   const [productList, setProductList] = useState<Product[]>([]);
+  const [currentView, setCurrentView] = useState<'home' | 'products' | 'tracking'>('home');
   const [isAdminView, setIsAdminView] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -75,10 +81,11 @@ const App: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [selectedArtist, setSelectedArtist] = useState<ArtistProfile | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [spinDiscount, setSpinDiscount] = useState<SpinResult | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Show toast helper
@@ -110,7 +117,7 @@ const App: React.FC = () => {
 
   const heroSlides = [
     {
-      title1: "TFiZ",
+      title1: "TFi",
       title2: "ZINDABAD",
       title3: "",
       subtitle: "THE FUTURE OF FASHION IS HERE. EXPERIENCE THE BLEND OF TRADITION AND TECHNOLOGY."
@@ -152,12 +159,6 @@ const App: React.FC = () => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const filteredProducts = useMemo(() => {
-    return activeCategory === 'All' 
-      ? productList 
-      : productList.filter(p => p.category === activeCategory);
-  }, [activeCategory, productList]);
-
   const cartCount = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [cartItems]);
@@ -166,9 +167,198 @@ const App: React.FC = () => {
     setProductList(newProducts);
   };
 
+  const scrollToSection = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const yOffset = -80;
+    const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }, []);
+
+  const resetScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  const normalizePath = useCallback((rawPath: string) => {
+    if (!rawPath || rawPath === '#') return '/';
+    const withoutHash = rawPath.startsWith('#') ? rawPath.slice(1) : rawPath;
+    if (!withoutHash || withoutHash === '/') return '/';
+    return withoutHash.startsWith('/') ? withoutHash : `/${withoutHash}`;
+  }, []);
+
+  const getCurrentPath = useCallback(() => {
+    return normalizePath(window.location.hash);
+  }, [normalizePath]);
+
+  const navigateTo = useCallback((path: string, replace = false) => {
+    const normalized = normalizePath(path);
+    const nextHash = `#${normalized}`;
+    if (replace) {
+      window.history.replaceState(null, '', nextHash);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      return;
+    }
+    if (window.location.hash === nextHash) {
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      return;
+    }
+    window.location.hash = normalized;
+  }, [normalizePath]);
+
+  const applyRoute = useCallback((path: string) => {
+    const route = normalizePath(path);
+
+    if (route === '/') {
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(null);
+      setCurrentView('home');
+      resetScrollToTop();
+      return;
+    }
+
+    if (route === '/products') {
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(null);
+      setCurrentView('products');
+      resetScrollToTop();
+      return;
+    }
+
+    if (route === '/track-order') {
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(null);
+      setCurrentView('tracking');
+      resetScrollToTop();
+      return;
+    }
+
+    if (route === '/collections') {
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(null);
+      setCurrentView('home');
+      resetScrollToTop();
+      setTimeout(() => scrollToSection('shop'), 60);
+      return;
+    }
+
+    if (route === '/about') {
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(null);
+      setCurrentView('home');
+      resetScrollToTop();
+      setTimeout(() => scrollToSection('about'), 60);
+      return;
+    }
+
+    if (route.startsWith('/product/')) {
+      const id = decodeURIComponent(route.replace('/product/', ''));
+      const product = productList.find((p) => p.id === id);
+      if (!product) {
+        if (productList.length > 0) navigateTo('/products', true);
+        return;
+      }
+      setIsAdminView(false);
+      setSelectedArtist(null);
+      setSelectedProduct(product);
+      setCurrentView('products');
+      resetScrollToTop();
+      return;
+    }
+
+    if (route.startsWith('/artist/')) {
+      const handle = decodeURIComponent(route.replace('/artist/', ''));
+      const artistProduct = productList.find((p) => p.artist?.handle === handle);
+      if (!artistProduct?.artist) {
+        if (productList.length > 0) navigateTo('/products', true);
+        return;
+      }
+      setIsAdminView(false);
+      setSelectedProduct(null);
+      setSelectedArtist(artistProduct.artist);
+      setCurrentView('products');
+      resetScrollToTop();
+      return;
+    }
+
+    if (route === '/admin') {
+      if (isAdminAuthenticated) {
+        setSelectedProduct(null);
+        setSelectedArtist(null);
+        setCurrentView('home');
+        setIsAdminView(true);
+        resetScrollToTop();
+      } else {
+        setIsAdminView(false);
+        setIsLoginModalOpen(true);
+        navigateTo('/', true);
+      }
+      return;
+    }
+
+    navigateTo('/', true);
+  }, [isAdminAuthenticated, navigateTo, normalizePath, productList, resetScrollToTop, scrollToSection]);
+
+  useEffect(() => {
+    const handleRouteChange = () => applyRoute(getCurrentPath());
+    handleRouteChange();
+    window.addEventListener('hashchange', handleRouteChange);
+    return () => window.removeEventListener('hashchange', handleRouteChange);
+  }, [applyRoute, getCurrentPath]);
+
+  const openProductPage = (product: Product) => {
+    navigateTo(`/product/${encodeURIComponent(product.id)}`);
+  };
+
+  const openArtistPage = (artist: ArtistProfile) => {
+    navigateTo(`/artist/${encodeURIComponent(artist.handle)}`);
+  };
+
+  const closeArtistPage = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('/products', true);
+    }
+  };
+
+  const closeProductPage = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigateTo('/products', true);
+    }
+  };
+
+  const goHome = () => {
+    navigateTo('/');
+  };
+
+  const goCollections = () => {
+    navigateTo('/collections');
+  };
+
+  const goAbout = () => {
+    navigateTo('/about');
+  };
+
+  const goProducts = () => {
+    navigateTo('/products');
+  };
+
+  const goTracking = () => {
+    navigateTo('/track-order');
+  };
+
   const handleAdminAccess = () => {
     if (isAdminAuthenticated) {
-      setIsAdminView(!isAdminView);
+      navigateTo(isAdminView ? '/' : '/admin');
     } else {
       setIsLoginModalOpen(true);
     }
@@ -180,7 +370,7 @@ const App: React.FC = () => {
     if (isValid) {
       setIsAdminAuthenticated(true);
       setIsLoginModalOpen(false);
-      setIsAdminView(true);
+      navigateTo('/admin');
     }
     return isValid;
   };
@@ -202,6 +392,13 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSpinWin = (result: SpinResult) => {
+    if (result.value > 0) {
+      setSpinDiscount(result);
+      showToast(`${result.label} unlocked and applied at checkout`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -215,7 +412,11 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white">
       <Navbar 
         cartCount={cartCount} 
-        onCartClick={() => setIsCartOpen(true)} 
+        onCartClick={() => setIsCartOpen(true)}
+        onHomeClick={goHome}
+        onCollectionsClick={goCollections}
+        onProductsClick={goProducts}
+        onAboutClick={goAbout}
       />
 
       <main>
@@ -231,8 +432,63 @@ const App: React.FC = () => {
               <AdminPanel 
                 products={productList} 
                 onUpdateProducts={handleUpdateProducts}
-                onClose={() => setIsAdminView(false)}
+                onClose={goHome}
               />
+            </motion.div>
+          ) : selectedProduct ? (
+            <motion.div
+              key="product-page"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ProductPage
+                product={selectedProduct}
+                onBack={closeProductPage}
+                onAddToCart={addToCart}
+                onOpenArtist={openArtistPage}
+              />
+            </motion.div>
+          ) : selectedArtist ? (
+            <motion.div
+              key="artist-page"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ArtistPage
+                artist={selectedArtist}
+                products={productList.filter((product) => product.artist?.handle === selectedArtist.handle)}
+                onBack={closeArtistPage}
+                onSelectProduct={openProductPage}
+              />
+            </motion.div>
+          ) : currentView === 'products' ? (
+            <motion.div
+              key="products-page"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ProductsCatalog
+                products={productList}
+                categoryFilters={categoryFilters}
+                onAddToCart={addToCart}
+                onViewDetails={openProductPage}
+              />
+            </motion.div>
+          ) : currentView === 'tracking' ? (
+            <motion.div
+              key="tracking-page"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <TrackOrderPage onBack={goHome} />
             </motion.div>
           ) : (
             <motion.div
@@ -243,12 +499,12 @@ const App: React.FC = () => {
               transition={{ duration: 0.3 }}
             >
               {/* Hero Section */}
-        <section className="pt-24 pb-12 px-4 sm:px-6">
+        <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 px-3 sm:px-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-7xl mx-auto bg-black rounded-[40px] p-8 md:p-20 lg:p-24 relative overflow-hidden"
+            className="max-w-7xl mx-auto bg-black rounded-[28px] sm:rounded-[40px] p-6 sm:p-8 md:p-20 lg:p-24 relative overflow-hidden"
           >
             <AnimatePresence mode="wait">
               <motion.div 
@@ -259,7 +515,7 @@ const App: React.FC = () => {
                 transition={{ duration: 0.5 }}
                 className="relative z-10 max-w-4xl"
               >
-                <h1 className="text-6xl md:text-8xl lg:text-[120px] font-black italic tracking-tighter leading-[0.85] mb-12 flex flex-col">
+                <h1 className="text-5xl sm:text-6xl md:text-8xl lg:text-[120px] font-black italic tracking-tighter leading-[0.85] mb-8 sm:mb-12 flex flex-col">
                   <span className="text-white glitch" data-text={heroSlides[currentSlide].title1}>{heroSlides[currentSlide].title1}</span>
                   <span className="text-red-600 glitch" data-text={heroSlides[currentSlide].title2}>{heroSlides[currentSlide].title2}</span>
                   <span className="bg-gradient-to-r from-red-500 via-red-700 to-red-900 bg-clip-text text-transparent">
@@ -268,12 +524,12 @@ const App: React.FC = () => {
                 </h1>
                 
                 <div className="max-w-xl">
-                  <p className="text-xs md:text-sm font-bold text-white/60 uppercase tracking-widest leading-relaxed mb-12">
+                  <p className="text-[11px] sm:text-xs md:text-sm font-bold text-white/60 uppercase tracking-widest leading-relaxed mb-8 sm:mb-12">
                     {heroSlides[currentSlide].subtitle}
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <a href="#shop" className="bg-white text-black px-10 py-4 rounded-full font-bold flex items-center justify-center gap-2 group hover:scale-105 transition-transform">
+                    <a href="#shop" className="w-full sm:w-auto bg-white text-black px-8 sm:px-10 py-4 rounded-full font-bold flex items-center justify-center gap-2 group hover:scale-105 transition-transform">
                       Explore Collection <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </a>
                   </div>
@@ -282,7 +538,7 @@ const App: React.FC = () => {
             </AnimatePresence>
 
             {/* Slide Indicators */}
-            <div className="absolute bottom-10 left-10 z-20 flex gap-2">
+            <div className="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 z-20 flex gap-2">
               {heroSlides.map((_, idx) => (
                 <button
                   key={idx}
@@ -300,46 +556,39 @@ const App: React.FC = () => {
         </section>
 
         {/* Spin & Win Section */}
-        <SpinWheel />
+        <SpinWheel onWin={handleSpinWin} />
 
         {/* Shop Section */}
         <section id="shop" className="py-24 max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-            <div>
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-black mb-4 uppercase">
-                THE COLLECTION
-              </h2>
-              <p className="text-black/50 font-medium max-w-md">
-                Browse our latest drop of digital-enhanced apparel and accessories.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 md:pb-0">
-              {['All', 'Apparel', 'Accessories', 'Digital'].map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap ${
-                    activeCategory === cat 
-                      ? 'bg-black text-white shadow-lg' 
-                      : 'bg-black/5 text-black/50 hover:bg-black/10'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+          <div className="mb-12">
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-black mb-4 uppercase">
+              THE COLLECTION
+            </h2>
+            <p className="text-black/50 font-medium max-w-md">
+              Browse our latest drop of digital-enhanced apparel and accessories.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-20">
+            {productList.slice(0, 6).map((product, index) => (
               <ProductCard 
                 key={product.id} 
                 product={product} 
                 onAddToCart={addToCart}
-                onViewDetails={setSelectedProduct}
+                onViewDetails={openProductPage}
+                index={index}
               />
             ))}
+          </div>
+
+          <div className="mt-12 flex justify-center">
+            <button
+              type="button"
+              onClick={goProducts}
+              className="px-10 py-4 rounded-full bg-black text-white font-bold uppercase tracking-[0.2em] text-sm hover:bg-black/85 transition-colors"
+            >
+              View All Products
+            </button>
           </div>
         </section>
 
@@ -377,6 +626,7 @@ const App: React.FC = () => {
           <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-black/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-black/5 rounded-full blur-3xl" />
         </section>
+
             </motion.div>
           )}
         </AnimatePresence>
@@ -409,7 +659,15 @@ const App: React.FC = () => {
                 <li><a href="#" className="hover:text-black transition-colors">Marketplace</a></li>
                 <li><a href="#" className="hover:text-black transition-colors">Collections</a></li>
                 <li><a href="#" className="hover:text-black transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-black transition-colors">Sustainability</a></li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={goTracking}
+                    className="hover:text-black transition-colors"
+                  >
+                    Track Order
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
@@ -443,6 +701,8 @@ const App: React.FC = () => {
         items={cartItems}
         onUpdateQuantity={updateQuantity}
         onRemove={removeFromCart}
+        spinDiscountPercent={spinDiscount?.value ?? 0}
+        spinDiscountLabel={spinDiscount?.label}
         onCheckout={() => {
           setIsCartOpen(false);
           setIsCheckoutOpen(true);
@@ -453,18 +713,15 @@ const App: React.FC = () => {
         isOpen={isCheckoutOpen} 
         onClose={() => setIsCheckoutOpen(false)} 
         items={cartItems}
+        spinDiscountPercent={spinDiscount?.value ?? 0}
+        spinDiscountLabel={spinDiscount?.label}
         onSuccess={() => {
           // Clear cart after successful checkout
           setTimeout(() => {
             setCartItems([]);
+            setSpinDiscount(null);
           }, 2000);
         }}
-      />
-
-      <ProductModal 
-        product={selectedProduct} 
-        onClose={() => setSelectedProduct(null)} 
-        onAddToCart={addToCart}
       />
 
       <AdminLoginModal
