@@ -7,9 +7,10 @@ interface ProductPageProps {
   onBack: () => void;
   onAddToCart: (product: Product) => void;
   onOpenArtist: (artist: ArtistProfile) => void;
+  onOpenARLens: (product: Product) => void;
 }
 
-export const ProductPage: React.FC<ProductPageProps> = ({ product, onBack, onAddToCart, onOpenArtist }) => {
+export const ProductPage: React.FC<ProductPageProps> = ({ product, onBack, onAddToCart, onOpenArtist, onOpenARLens }) => {
   const inStock = product.inStock ?? true;
   const rating = product.rating ?? 4.5;
   const [selectedSize, setSelectedSize] = React.useState<'S' | 'M' | 'L' | 'XL'>('M');
@@ -172,6 +173,15 @@ export const ProductPage: React.FC<ProductPageProps> = ({ product, onBack, onAdd
               >
                 Add to Wishlist
               </button>
+              {product.arReady && (
+                <button
+                  type="button"
+                  onClick={() => onOpenARLens(product)}
+                  className="w-full sm:w-auto px-8 py-4 border border-black rounded-full font-bold uppercase tracking-widest text-sm bg-black text-white hover:bg-black/85 transition-colors"
+                >
+                  Open AR Lens
+                </button>
+              )}
             </div>
           </div>
         </div>

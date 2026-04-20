@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Menu, X, Search, Heart } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Heart, Camera } from 'lucide-react';
 import logoImage from '../../logo.jpeg';
 
 interface NavbarProps {
@@ -9,6 +9,7 @@ interface NavbarProps {
   onCollectionsClick: () => void;
   onProductsClick: () => void;
   onAboutClick: () => void;
+  onARLensClick: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onCollectionsClick,
   onProductsClick,
   onAboutClick,
+  onARLensClick,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
@@ -100,6 +102,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             About
           </button>
+          <button
+            onClick={onARLensClick}
+            className="text-sm font-medium hover:text-black/60 transition-colors inline-flex items-center gap-2"
+          >
+            <Camera size={15} />
+            AR Lens
+          </button>
           
           <div className="flex items-center gap-2 ml-4 pl-4 border-l border-black/10">
             <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Search">
@@ -124,6 +133,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Nav Actions */}
         <div className="flex items-center gap-2 md:hidden">
+          <button
+            onClick={onARLensClick}
+            className="p-2 hover:bg-black/5 rounded-full transition-colors"
+            aria-label="Open AR Lens"
+          >
+            <Camera size={20} />
+          </button>
           <button className="p-2 hover:bg-black/5 rounded-full transition-colors" aria-label="Search">
             <Search size={20} />
           </button>
@@ -174,6 +190,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="text-left text-lg font-bold"
             >
               About
+            </button>
+            <button
+              onClick={() => {
+                onARLensClick();
+                setIsMenuOpen(false);
+              }}
+              className="text-left text-lg font-bold inline-flex items-center gap-2"
+            >
+              <Camera size={18} />
+              AR Lens
             </button>
           </div>
         </div>

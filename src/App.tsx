@@ -6,6 +6,7 @@ import { ProductPage } from './components/ProductPage';
 import { ArtistPage } from './components/ArtistPage';
 import { ProductsCatalog } from './components/ProductsCatalog';
 import { TrackOrderPage } from './components/TrackOrderPage';
+import { ARLensModal } from './components/ARLensModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { products as initialProducts } from './data/products';
 import { AdminPanel } from './components/AdminPanel';
@@ -82,6 +83,7 @@ const App: React.FC = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<ArtistProfile | null>(null);
+  const [arLensProduct, setArLensProduct] = useState<Product | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -214,6 +216,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(null);
+      setArLensProduct(null);
       setCurrentView('home');
       resetScrollToTop();
       return;
@@ -223,6 +226,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(null);
+      setArLensProduct(null);
       setCurrentView('products');
       resetScrollToTop();
       return;
@@ -232,6 +236,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(null);
+      setArLensProduct(null);
       setCurrentView('tracking');
       resetScrollToTop();
       return;
@@ -241,6 +246,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(null);
+      setArLensProduct(null);
       setCurrentView('home');
       resetScrollToTop();
       setTimeout(() => scrollToSection('shop'), 60);
@@ -251,9 +257,26 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(null);
+      setArLensProduct(null);
       setCurrentView('home');
       resetScrollToTop();
       setTimeout(() => scrollToSection('about'), 60);
+      return;
+    }
+
+    if (route.startsWith('/arlens/')) {
+      const id = decodeURIComponent(route.replace('/arlens/', ''));
+      const product = productList.find((p) => p.id === id && p.arReady);
+      if (!product) {
+        if (productList.length > 0) navigateTo('/products', true);
+        return;
+      }
+      setIsAdminView(false);
+      setSelectedArtist(null);
+      setSelectedProduct(product);
+      setArLensProduct(product);
+      setCurrentView('products');
+      resetScrollToTop();
       return;
     }
 
@@ -267,6 +290,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedArtist(null);
       setSelectedProduct(product);
+      setArLensProduct(null);
       setCurrentView('products');
       resetScrollToTop();
       return;
@@ -282,6 +306,7 @@ const App: React.FC = () => {
       setIsAdminView(false);
       setSelectedProduct(null);
       setSelectedArtist(artistProduct.artist);
+      setArLensProduct(null);
       setCurrentView('products');
       resetScrollToTop();
       return;
@@ -291,6 +316,7 @@ const App: React.FC = () => {
       if (isAdminAuthenticated) {
         setSelectedProduct(null);
         setSelectedArtist(null);
+        setArLensProduct(null);
         setCurrentView('home');
         setIsAdminView(true);
         resetScrollToTop();
@@ -320,6 +346,11 @@ const App: React.FC = () => {
     navigateTo(`/artist/${encodeURIComponent(artist.handle)}`);
   };
 
+  const openARLens = (product: Product) => {
+    if (!product.arReady) return;
+    navigateTo(`/arlens/${encodeURIComponent(product.id)}`);
+  };
+
   const closeArtistPage = () => {
     if (window.history.length > 1) {
       window.history.back();
@@ -331,6 +362,16 @@ const App: React.FC = () => {
   const closeProductPage = () => {
     if (window.history.length > 1) {
       window.history.back();
+    } else {
+      navigateTo('/products', true);
+    }
+  };
+
+  const closeARLens = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else if (selectedProduct) {
+      navigateTo(`/product/${encodeURIComponent(selectedProduct.id)}`, true);
     } else {
       navigateTo('/products', true);
     }
@@ -354,6 +395,15 @@ const App: React.FC = () => {
 
   const goTracking = () => {
     navigateTo('/track-order');
+  };
+
+  const goARLens = () => {
+    const arProduct = productList.find((p) => p.arReady);
+    if (!arProduct) {
+      showToast('AR Lens is not available right now.', 'error');
+      return;
+    }
+    openARLens(arProduct);
   };
 
   const handleAdminAccess = () => {
@@ -417,6 +467,7 @@ const App: React.FC = () => {
         onCollectionsClick={goCollections}
         onProductsClick={goProducts}
         onAboutClick={goAbout}
+        onARLensClick={goARLens}
       />
 
       <main>
@@ -448,6 +499,7 @@ const App: React.FC = () => {
                 onBack={closeProductPage}
                 onAddToCart={addToCart}
                 onOpenArtist={openArtistPage}
+                onOpenARLens={openARLens}
               />
             </motion.div>
           ) : selectedArtist ? (
@@ -729,6 +781,8 @@ const App: React.FC = () => {
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={handleAdminPasswordLogin}
       />
+
+      {arLensProduct && <ARLensModal product={arLensProduct} onClose={closeARLens} />}
 
       {/* Toast Notification */}
       <AnimatePresence>
