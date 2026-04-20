@@ -581,9 +581,13 @@ const App: React.FC = () => {
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <a href="#shop" className="w-full sm:w-auto bg-white text-black px-8 sm:px-10 py-4 rounded-full font-bold flex items-center justify-center gap-2 group hover:scale-105 transition-transform">
-                      Explore Collection <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                    </a>
+                    <button
+                      type="button"
+                      onClick={goARLens}
+                      className="w-full sm:w-auto bg-white text-black px-8 sm:px-10 py-4 rounded-full font-bold flex items-center justify-center gap-2 group hover:scale-105 hover:text-black/80 transition-transform"
+                    >
+                      Try AR <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
                   </div>
                 </div>
               </motion.div>
